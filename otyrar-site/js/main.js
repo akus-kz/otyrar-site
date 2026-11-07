@@ -4,34 +4,81 @@ addEventListener("scroll", () => $("nav").classList.toggle("s", scrollY > 40), {
 const im = new Image(); im.onload = () => { const h = $(".hero"); h.style.backgroundImage = "url(images/hero.jpg)"; h.classList.add("img"); }; im.src = "images/hero.jpg";
 addEventListener("scroll", () => { const c = $(".hero>div"); if (scrollY < innerHeight) c.style.transform = `translateY(${scrollY*.25}px)`; }, {passive:true});
 
-// ---- меню с заказом в WhatsApp ----
-const cart = {};
+// ---- меню и корзина ----
+const KEY = "otyrar-cart-v1", CUST = "otyrar-cust-v1", cart = {};
+const lsGet = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+const ck = i => S.menu[i].cat + "|" + S.menu[i].name, idx = {};
+S.menu.forEach((m, i) => idx[ck(i)] = i);
+Object.entries(lsGet(KEY, {})).forEach(([k, n]) => { if (k in idx && n > 0) cart[idx[k]] = n; });
+const saveCart = () => { const o = {}; for (const i in cart) if (cart[i] > 0) o[ck(i)] = cart[i]; lsSet(KEY, o); };
+const lines = () => Object.keys(cart).filter(i => cart[i] > 0).map(i => ({ i: +i, m: S.menu[i], n: cart[i] }));
+const sum = () => lines().reduce((s, l) => s + l.m.price * l.n, 0), count = () => lines().reduce((s, l) => s + l.n, 0);
+let curCat = null;
+function updateBar() { const c = count(); $("#cart").hidden = !c; $("#cartInfo").textContent = c ? `${c} поз. · ${fmt(sum())}` : ""; }
+function change(i, d) { cart[i] = Math.max(0, (cart[i] || 0) + d); saveCart(); renderMenu(); updateBar(); }
 function renderMenu() {
-  const q = $("#q").value.trim().toLowerCase(), cat = renderMenu.cat || "Все";
-  const items = S.menu.filter(m => (cat === "Все" || m.cat === cat) && (!q || (m.name + " " + (m.desc||"")).toLowerCase().includes(q)));
-  $("#menuItems").innerHTML = items.length ? items.map(m => {
-    const i = S.menu.indexOf(m), n = cart[i] || 0;
-    return `<div class="card dish"><h3>${esc(m.name)}${m.price?`<em>${fmt(m.price)}</em>`:""}</h3>${m.desc?`<p>${esc(m.desc)}</p>`:""}
-      <div class="qty"><button data-i="${i}" data-d="-1" aria-label="Убрать">−</button><span>${n}</span><button data-i="${i}" data-d="1" aria-label="Добавить">+</button></div></div>`;
-  }).join("") : `<p class="note">Ничего не найдено.</p>`;
-}
-function renderCart() {
-  const ids = Object.keys(cart).filter(i => cart[i] > 0);
-  $("#cart").hidden = !ids.length; if (!ids.length) return;
-  let sum = 0, cnt = 0, lines = [];
-  ids.forEach(i => { const m = S.menu[i], n = cart[i]; cnt += n; sum += (m.price||0) * n; lines.push(`• ${m.name} × ${n}${m.price?` — ${fmt(m.price*n)}`:""}`); });
-  $("#cartInfo").textContent = `${cnt} поз.` + (sum ? ` · ${fmt(sum)}` : "");
-  $("#cartBtn").href = `https://wa.me/${S.wa}?text=` + encodeURIComponent("Здравствуйте! Хочу заказать:\n" + lines.join("\n") + (sum ? `\nИтого: ${fmt(sum)}` : ""));
+  const q = $("#q").value.trim().toLowerCase();
+  const list = S.menu.map((m, i) => ({ m, i })).filter(({ m }) => q ? (m.name + " " + m.cat + " " + (m.sub || "")).toLowerCase().includes(q) : m.cat === curCat);
+  let last = null, html = "";
+  const cv = !q && S.photos && S.photos[curCat];
+  if (cv) html += `<div class="cover"><img src="images/menu/${esc(cv)}" alt="${esc(curCat)}" loading="lazy" onerror="this.parentNode.remove()"></div>`;
+  list.forEach(({ m, i }) => {
+    const grp = q ? m.cat : (m.sub || ""); if (grp && grp !== last) { html += `<h4 class="grp">${esc(grp)}</h4>`; last = grp; }
+    const n = cart[i] || 0;
+    html += `<div class="card dish">${m.img ? `<img class="th" src="images/menu/${esc(m.img)}" alt="${esc(m.name)}" loading="lazy" onerror="this.remove()">` : ""}<h3>${esc(m.name)}</h3><div class="buy"><b>${fmt(m.price)}</b>${n
+      ? `<div class="qty"><button type="button" data-i="${i}" data-d="-1" aria-label="Убрать">−</button><span>${n}</span><button type="button" data-i="${i}" data-d="1" aria-label="Добавить">+</button></div>`
+      : `<button class="add" type="button" data-i="${i}" data-d="1">В корзину</button>`}</div></div>`;
+  });
+  $("#menuItems").innerHTML = html || `<p class="note">Ничего не найдено.</p>`;
+  [...$("#tabs").children].forEach(b => b.classList.toggle("on", !q && b.textContent === curCat));
 }
 if (S.menu.length) {
   $("#menuStatic").hidden = true; $("#menuApp").hidden = false;
-  const cats = ["Все", ...new Set(S.menu.map(m => m.cat).filter(Boolean))]; renderMenu.cat = "Все";
-  $("#tabs").innerHTML = cats.map((c, k) => `<button type="button" class="${k?"":"on"}">${esc(c)}</button>`).join("");
-  $("#tabs").onclick = e => { if (e.target.tagName !== "BUTTON") return; [...$("#tabs").children].forEach(b => b.classList.toggle("on", b === e.target)); renderMenu.cat = e.target.textContent; renderMenu(); };
+  const cats = [...new Set(S.menu.map(m => m.cat))]; curCat = cats[0];
+  $("#tabs").innerHTML = cats.map(c => `<button type="button">${esc(c)}</button>`).join("");
+  $("#tabs").onclick = e => { if (e.target.tagName !== "BUTTON") return; curCat = e.target.textContent; $("#q").value = ""; renderMenu(); };
   $("#q").oninput = renderMenu;
-  $("#menuItems").onclick = e => { const b = e.target.closest("button[data-i]"); if (!b) return; const i = b.dataset.i; cart[i] = Math.max(0, (cart[i]||0) + +b.dataset.d); renderMenu(); renderCart(); };
-  $("#cartClr").onclick = () => { for (const k in cart) delete cart[k]; renderMenu(); renderCart(); };
-  renderMenu();
+  $("#menuItems").onclick = e => { const b = e.target.closest("button[data-i]"); if (b) change(+b.dataset.i, +b.dataset.d); };
+  $("#cartBtn").onclick = openCart;
+  renderMenu(); updateBar();
+}
+
+function openCart() {
+  if (!count()) return;
+  const c = lsGet(CUST, {}), v = k => esc(c[k] || "");
+  showDlg(`<h3>Ваш заказ</h3><div id="cl"></div>
+  <form id="of"><div class="seg"><label><input type="radio" name="mode" value="Доставка" checked>Доставка</label><label><input type="radio" name="mode" value="Самовывоз">Самовывоз</label></div>
+  <label>Имя<input name="n" required autocomplete="name" value="${v("n")}"></label>
+  <label>Телефон<input name="p" type="tel" required autocomplete="tel" inputmode="tel" placeholder="+7 7__ ___ __ __" value="${v("p")}"></label>
+  <div id="addr"><label>Адрес доставки<input name="a" required autocomplete="street-address" placeholder="Улица, дом, квартира" value="${v("a")}"></label>
+  <label>Подъезд, этаж, домофон<input name="e" placeholder="необязательно" value="${v("e")}"></label></div>
+  <p class="pick" hidden>Самовывоз: Актау, 28-й микрорайон, 53.</p>
+  <label>Ко времени<input name="t" type="time"></label>
+  <label>Комментарий<textarea name="c" rows="2" placeholder="Например: без лука, меньше острого"></textarea></label>
+  <p class="hint">Стоимость доставки и время подтвердит администратор. Заказ уйдёт в WhatsApp кафе.</p>
+  <button class="btn" type="submit">Отправить заказ в WhatsApp</button></form>`);
+  const f = $("#of");
+  const renderList = () => { const L = lines(); if (!L.length) return dlg.close();
+    $("#cl").innerHTML = L.map(l => `<div class="cr"><div><b>${esc(l.m.name)}</b><small>${fmt(l.m.price)} × ${l.n} = ${fmt(l.m.price * l.n)}</small></div><div class="qty"><button type="button" data-ci="${l.i}" data-d="-1" aria-label="Убрать">−</button><span>${l.n}</span><button type="button" data-ci="${l.i}" data-d="1" aria-label="Добавить">+</button></div></div>`).join("")
+      + `<div class="tot"><span>Блюда</span><b>${fmt(sum())}</b></div>`; };
+  renderList();
+  body.onclick = e => { const b = e.target.closest("[data-ci]"); if (b) { change(+b.dataset.ci, +b.dataset.d); renderList(); } };
+  f.onchange = e => { if (e.target.name !== "mode") return; const d = f.mode.value === "Доставка"; $("#addr").hidden = !d; f.querySelector(".pick").hidden = d; f.a.required = d; };
+  f.p.oninput = () => f.p.setCustomValidity("");
+  f.onsubmit = e => { e.preventDefault();
+    const dg = f.p.value.replace(/\D/g, "");
+    if (!(dg.length === 10 || (dg.length === 11 && "78".includes(dg[0])))) { f.p.setCustomValidity("Введите номер, например +7 777 123 45 67"); return f.p.reportValidity(); }
+    const x = Object.fromEntries(new FormData(f)), del = x.mode === "Доставка"; lsSet(CUST, { n: x.n, p: x.p, a: x.a, e: x.e });
+    const msg = ["Здравствуйте! Новый заказ с сайта.", `Имя: ${x.n}`, `Телефон: ${x.p}`, `Получение: ${x.mode}`,
+      del ? `Адрес: ${x.a}${x.e ? ", " + x.e : ""}` : "Самовывоз: 28-й мкр, 53", x.t ? `Ко времени: ${x.t}` : "Время: как можно скорее", "", "Заказ:",
+      ...lines().map(l => `• ${l.m.name} × ${l.n} — ${fmt(l.m.price * l.n)}`), `Сумма блюд: ${fmt(sum())}`, x.c ? `Комментарий: ${x.c}` : ""].join("\n").trim();
+    const url = wa(msg), a = document.createElement("a"); a.href = url; a.target = "_blank"; a.rel = "noopener"; document.body.append(a); a.click(); a.remove();
+    showDlg(`<h3>Заказ готов к отправке</h3><p>Открылся WhatsApp с текстом вашего заказа. Нажмите «Отправить» в чате: пока вы этого не сделали, кафе заказ не получило.</p>
+      <a class="btn" href="${url}" target="_blank" rel="noopener">Открыть WhatsApp ещё раз</a><button class="btn" type="button" id="cp">Скопировать текст заказа</button><button class="btn" type="button" id="cc">Очистить корзину</button>`);
+    $("#cp").onclick = () => navigator.clipboard.writeText(msg).then(() => say("Заказ скопирован"), () => say("Не удалось скопировать"));
+    $("#cc").onclick = () => { for (const k in cart) delete cart[k]; saveCart(); renderMenu(); updateBar(); dlg.close(); };
+  };
 }
 
 // ---- отзывы и галерея ----

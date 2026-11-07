@@ -82,3 +82,18 @@ dialog .or{margin:18px 0 0;text-align:center;font-size:14px}dialog .or a,dialog 
 #toast{position:fixed;left:50%;bottom:90px;transform:translate(-50%,20px);background:var(--gold);color:#0e0d0b;padding:12px 22px;opacity:0;pointer-events:none;transition:.4s;z-index:60}
 #toast.on{opacity:1;transform:translate(-50%,0)}
 @media(max-width:600px){nav{padding:12px 14px}nav b{font-size:17px}nav div a{margin-left:12px;font-size:11px;letter-spacing:.08em}}
+dialog{max-height:92vh;overflow:auto;max-width:520px}
+.cr{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}.cr small{display:block;color:var(--mut)}
+.tot{display:flex;justify-content:space-between;padding:14px 0 4px;font-size:18px}.tot b{color:var(--gold2);font-family:Georgia,serif}
+.seg{display:flex;gap:10px;margin-top:20px}.seg label{flex:1;margin:0;padding:10px;border:1px solid var(--line);text-align:center;cursor:pointer;text-transform:none;letter-spacing:0;font-size:15px;color:var(--ink)}
+.seg label:has(input:checked){border-color:var(--gold);background:rgba(201,161,90,.14)}.seg input{width:auto;margin:0 8px 0 0}
+.hint,.pick{font-size:13px;color:var(--mut);margin:14px 0 0}
+.dish h3{font-size:19px}.buy{display:flex;justify-content:space-between;align-items:center;gap:10px}.buy b{color:var(--gold2);font:400 20px Georgia,serif}
+.add{background:none;border:1px solid var(--gold);color:var(--gold2);padding:8px 16px;cursor:pointer;font:inherit;font-size:12px;letter-spacing:.1em;text-transform:uppercase;transition:.3s}.add:hover{background:var(--gold);color:#0e0d0b}
+.grp{grid-column:1/-1;margin:18px 0 -6px;color:var(--gold);font:400 13px system-ui;letter-spacing:.3em;text-transform:uppercase}
+#cartInfo{font-size:15px}
+@media(max-width:600px){.tabs{flex-wrap:nowrap;overflow-x:auto;padding-bottom:8px}.tabs button{flex:none}}
+.buy b,.add{white-space:nowrap}.add{padding:8px 12px}#menuItems{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+.cover{grid-column:1/-1;height:220px;overflow:hidden;border:1px solid var(--line)}.cover img{width:100%;height:100%;object-fit:cover;transition:transform 1.4s}.cover:hover img{transform:scale(1.05)}
+.th{width:100%;height:150px;object-fit:cover;margin:-8px 0 4px;border:1px solid var(--line)}
+@media(max-width:600px){.cover{height:150px}}
