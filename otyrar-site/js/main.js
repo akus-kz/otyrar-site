@@ -15,29 +15,36 @@ const saveCart = () => { const o = {}; for (const i in cart) if (cart[i] > 0) o[
 const lines = () => Object.keys(cart).filter(i => cart[i] > 0).map(i => ({ i: +i, m: S.menu[i], n: cart[i] }));
 const sum = () => lines().reduce((s, l) => s + l.m.price * l.n, 0), count = () => lines().reduce((s, l) => s + l.n, 0);
 let curCat = null;
+const CAT_DESC = {"Супы":"Первые блюда","Горячие блюда":"Вторые блюда: курица, баранина, мясо, рыба","Горячие сеты":"Сеты горячих блюд","На компанию":"Большие блюда на 3–4 персоны","Гарниры":"Гарниры к основным блюдам","Детское меню":"Блюда для детей","Роллы":"Холодные, жареные и запечённые"};
 function updateBar() { const c = count(); $("#cart").hidden = !c; $("#cartInfo").textContent = c ? `${c} поз. · ${fmt(sum())}` : ""; }
 function change(i, d) { cart[i] = Math.max(0, (cart[i] || 0) + d); saveCart(); renderMenu(); updateBar(); }
 function renderMenu() {
   const q = $("#q").value.trim().toLowerCase();
   const list = S.menu.map((m, i) => ({ m, i })).filter(({ m }) => q ? (m.name + " " + m.cat + " " + (m.sub || "")).toLowerCase().includes(q) : m.cat === curCat);
   let last = null, html = "";
+  if (!q) {
+    const n = S.menu.filter(m => m.cat === curCat).length, subs = [...new Set(S.menu.filter(m => m.cat === curCat && m.sub).map(m => m.sub))];
+    const pl = n % 10 === 1 && n % 100 !== 11 ? "позиция" : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) ? "позиции" : "позиций";
+    const ds = CAT_DESC[curCat] || (subs.length ? subs.join(" · ") : "");
+    html += `<div class="cat-head">${ico(curCat, "big")}<div><h3>${esc(curCat)}</h3><p>${ds ? esc(ds) + " · " : ""}${n} ${pl}</p></div></div>`;
+  }
   const cv = !q && S.photos && S.photos[curCat];
   if (cv) html += `<div class="cover"><img src="images/menu/${esc(cv)}" alt="${esc(curCat)}" loading="lazy" onerror="this.parentNode.remove()"></div>`;
   list.forEach(({ m, i }) => {
     const grp = q ? m.cat : (m.sub || ""); if (grp && grp !== last) { html += `<h4 class="grp">${esc(grp)}</h4>`; last = grp; }
     const n = cart[i] || 0;
-    html += `<div class="card dish">${m.img ? `<img class="th" src="images/menu/${esc(m.img)}" alt="${esc(m.name)}" loading="lazy" onerror="this.remove()">` : ""}<h3>${esc(m.name)}</h3><div class="buy"><b>${fmt(m.price)}</b>${n
+    html += `<div class="card dish"><span class="dic">${ico(m.cat)}</span><img class="th" src="images/menu/${esc(m.img || String(i + 1).padStart(3, "0") + ".jpg")}" alt="${esc(m.name)}" loading="lazy" onload="this.closest('.dish').classList.add('ph')" onerror="this.remove()"><h3>${esc(m.name)}</h3><div class="buy"><b>${fmt(m.price)}</b>${n
       ? `<div class="qty"><button type="button" data-i="${i}" data-d="-1" aria-label="Убрать">−</button><span>${n}</span><button type="button" data-i="${i}" data-d="1" aria-label="Добавить">+</button></div>`
       : `<button class="add" type="button" data-i="${i}" data-d="1">В корзину</button>`}</div></div>`;
   });
   $("#menuItems").innerHTML = html || `<p class="note">Ничего не найдено.</p>`;
-  [...$("#tabs").children].forEach(b => b.classList.toggle("on", !q && b.textContent === curCat));
+  [...$("#tabs").children].forEach(b => b.classList.toggle("on", !q && b.dataset.c === curCat));
 }
 if (S.menu.length) {
   $("#menuStatic").hidden = true; $("#menuApp").hidden = false;
   const cats = [...new Set(S.menu.map(m => m.cat))]; curCat = cats[0];
-  $("#tabs").innerHTML = cats.map(c => `<button type="button">${esc(c)}</button>`).join("");
-  $("#tabs").onclick = e => { if (e.target.tagName !== "BUTTON") return; curCat = e.target.textContent; $("#q").value = ""; renderMenu(); };
+  $("#tabs").innerHTML = cats.map(c => `<button type="button" data-c="${esc(c)}">${ico(c)}<span>${esc(c)}</span></button>`).join("");
+  $("#tabs").onclick = e => { const t = e.target.closest("button"); if (!t) return; curCat = t.dataset.c; $("#q").value = ""; renderMenu(); };
   $("#q").oninput = renderMenu;
   $("#menuItems").onclick = e => { const b = e.target.closest("button[data-i]"); if (b) change(+b.dataset.i, +b.dataset.d); };
   $("#cartBtn").onclick = openCart;
@@ -82,7 +89,23 @@ function openCart() {
 }
 
 // ---- отзывы и галерея ----
-$("#revList").innerHTML = S.reviews.map(r => `<div class="card rv"><p>«${esc(r.text)}»</p><h3 style="font-size:16px;margin-top:12px">${esc(r.name)}</h3>${r.date?`<small style="color:var(--mut)">${esc(r.date)}</small>`:""}</div>`).join("");
+(function () {
+  const L = S.reviews.length ? S.reviews.map(r => ({ t: `«${r.text}»`, n: r.name, d: r.date, r: Math.max(1, Math.min(5, Math.round(r.rating || 5))), src: r.source })) : [
+    { big: "4.9", t: "Средняя оценка гостей на карте 2ГИС", n: "из 5 возможных" },
+    { big: "506", t: "оценок оставили гости кафе в 2ГИС", n: "данные на 07.11.2026" },
+    { big: "389", t: "отзывов гостей на карте 2ГИС", n: "прочитать их можно по кнопке" }];
+  const box = $("#revSlider"); let k = 0, timer;
+  box.innerHTML = `<div class="sl-view"><div class="sl-track">${L.map(s => `<figure class="sl">${s.big ? `<b class="big">${s.big}</b>` : `<div class="stars sm">${"★".repeat(s.r)}<span>${"★".repeat(5 - s.r)}</span></div>`}<blockquote>${esc(s.t)}</blockquote><figcaption>${esc(s.n || "")}${s.d ? " · " + esc(s.d) : ""}${s.src ? " · " + esc(s.src) : ""}</figcaption></figure>`).join("")}</div></div>
+    <div class="sl-nav"><button type="button" data-s="-1" aria-label="Назад">←</button><div class="dots">${L.map((_, n) => `<i data-k="${n}"></i>`).join("")}</div><button type="button" data-s="1" aria-label="Вперёд">→</button></div>`;
+  const tr = box.querySelector(".sl-track"), dots = [...box.querySelectorAll(".dots i")];
+  const go = n => { k = (n + L.length) % L.length; tr.style.transform = `translateX(${-100 * k}%)`; dots.forEach((d, m) => d.classList.toggle("on", m === k)); };
+  const play = () => { clearInterval(timer); if (L.length > 1 && !matchMedia("(prefers-reduced-motion:reduce)").matches) timer = setInterval(() => go(k + 1), 6000); };
+  box.onclick = e => { const b = e.target.closest("[data-s]"), d = e.target.closest("[data-k]"); if (b) go(k + +b.dataset.s); else if (d) go(+d.dataset.k); play(); };
+  box.onmouseenter = () => clearInterval(timer); box.onmouseleave = play;
+  let x0 = null; box.onpointerdown = e => x0 = e.clientX;
+  box.onpointerup = e => { if (x0 != null && Math.abs(e.clientX - x0) > 40) { go(k + (e.clientX < x0 ? 1 : -1)); play(); } x0 = null; };
+  go(0); play();
+})();
 if (S.gallery.length) $("#gal").innerHTML = S.gallery.map(f => `<div class="rv"><img src="images/${esc(f)}" alt="Отырар" loading="lazy"></div>`).join(""); else $("#galSec").hidden = true;
 
 const io = new IntersectionObserver(es => es.forEach(e => {
@@ -139,3 +162,13 @@ document.addEventListener("click", e => {
   if (a && matchMedia("(hover:hover) and (pointer:fine)").matches) { e.preventDefault(); copy(a.textContent.trim().startsWith("+") ? a.textContent.trim() : S.phone); }
 });
 document.querySelectorAll("#menuStatic .card").forEach(c => { c.tabIndex = 0; c.setAttribute("role", "button"); c.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); c.click(); } }; });
+
+// ---- звёзды и падающая звезда в шапке ----
+(function () {
+  let s = ""; for (let n = 0; n < 48; n++) { const z = (Math.random() * 1.8 + .8).toFixed(1);
+    s += `<i style="left:${(Math.random() * 100).toFixed(1)}%;top:${(Math.random() * 60).toFixed(1)}%;width:${z}px;height:${z}px;--d:${(2 + Math.random() * 4).toFixed(1)}s;--l:-${(Math.random() * 5).toFixed(1)}s"></i>`; }
+  $("#sky").innerHTML = s + '<b class="shoot"></b>';
+})();
+
+const ca = $(".city-art"), fit = () => ca.setAttribute("preserveAspectRatio", innerWidth < innerHeight ? "xMidYMax slice" : "xMidYMax meet");
+fit(); addEventListener("resize", fit);

@@ -1,17 +1,9 @@
-Фото для меню. Лицензия сайта Foodiesfeed: CC0 (коммерческое использование, указание автора не нужно).
-Скачайте фото на странице и сохраните под указанным именем в эту папку:
+ФОТО БЛЮД
+Каждое блюдо ищет свою фотографию по номеру: 001.jpg, 002.jpg ... 195.jpg (папка images/menu/).
+Номера и названия блюд — в файле СПИСОК-БЛЮД.csv (открывается в Excel).
+Нет файла — карточка остаётся без фото (показывается значок категории).
+Формат: jpg, лучше 800x600 или больше. Нумерация идёт в порядке блюд в js/data.js:
+если меняете порядок блюд, переименуйте фото или задайте блюду поле img:"имя.jpg".
 
-pizza.jpg     Пицца              https://www.foodiesfeed.com/free-food-photo/pizza-salami
-burger.jpg    Фаст-фуд           https://www.foodiesfeed.com/free-food-photo/juicy-cheeseburger
-rolls.jpg     Роллы              https://www.foodiesfeed.com/free-food-photo/sushi-platter
-coffee.jpg    Кофе               https://www.foodiesfeed.com/free-food-photo/coffee-crema
-dessert.jpg   Десерты            https://www.foodiesfeed.com/free-food-photo/strawberry-cheesecake-slice-with-mint-garnish
-bread.jpg     Хлеб               https://www.foodiesfeed.com/free-food-photo/freshly-baked-assortment-of-artisan-breads
-salad.jpg     Салаты             https://www.foodiesfeed.com/free-food-photo/colorful-fresh-vegetable-salad-arrangement
-soup.jpg      Супы               https://www.foodiesfeed.com/free-food-photo/hearty-chicken-vegetable-soup-recipe
-lemonade.jpg  Лимонады           https://www.foodiesfeed.com/free-food-photo/refreshing-cocktail-splash-in-glass
-juice.jpg     Напитки            https://www.foodiesfeed.com/free-food-photo/colorful-fresh-pressed-juices-display
-shake.jpg     Молочные коктейли  https://www.foodiesfeed.com/free-food-photo/creamy-strawberry-smoothie-delight
-
-Остальные категории (плов, бешбармак, куырдак, манты, жаровни и т.д.) подходящих стоковых фото не имеют:
-для них используйте реальные фото блюд кафе.
+Баннеры категорий (необязательно): pizza.jpg, burger.jpg, rolls.jpg, coffee.jpg, dessert.jpg,
+bread.jpg, salad.jpg, soup.jpg, lemonade.jpg, juice.jpg, shake.jpg (см. js/data.js, поле photos).
